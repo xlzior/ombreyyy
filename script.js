@@ -76,19 +76,22 @@ class Board {
   constructor(h, w) {
     this.h = h;
     this.w = w;
+    this.initialise();
+  }
+
+  initialise() {
     this.corners = Colour.randomDistinct(4);
     this.boardColours = [];
 
-    for (let y = 0; y < h; y++) {
+    for (let y = 0; y < this.h; y++) {
       const row = []
-      for (let x = 0; x < w; x++) {
+      for (let x = 0; x < this.w; x++) {
         row.push(this.getColour(x, y));
       }
       this.boardColours.push(row)
     }
-
-    this.shuffle();
-    this.resize();
+    this.shuffle(1);
+    this.resize()
   }
 
   getColour(x, y) {
@@ -153,7 +156,9 @@ class Board {
   }
 
   resize() {
-    this.pixelWidth = Math.floor(Math.min(window.innerHeight / this.h, window.innerWidth / this.w))
+    this.pixelWidth = Math.floor(Math.min(
+      (window.innerHeight - 100) / this.h,
+      window.innerWidth / this.w))
     this.draw();
   }
 
@@ -199,9 +204,20 @@ class Board {
     }
     const root = document.getElementById("root")
     root.replaceChildren(board)
+    const endScreen = document.createElement('div')
+    endScreen.className = 'end-screen'
     if (this.isSolved()) {
-      root.appendChild(document.createTextNode('Solved!'))
+      const solved = document.createElement('p')
+      solved.textContent = '✅ Solved!'
+      const nextPuzzle = document.createElement('button')
+      nextPuzzle.addEventListener('click', () => {
+        this.initialise()
+      })
+      nextPuzzle.textContent = 'Next ⏩'
+      endScreen.appendChild(solved)
+      endScreen.appendChild(nextPuzzle)
     }
+    root.appendChild(endScreen)
   }
 }
 
