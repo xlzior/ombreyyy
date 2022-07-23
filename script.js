@@ -1,14 +1,10 @@
 // @ts-check
 
-const isEqual = (colour1, colour2) => {
-  for (let c = 0; c < 3; c++) {
-    if (colour1[c] !== colour2[c]) {
-      return false;
-    }
-  }
-  return true;
-}
-
+/**
+ * @param {number} min minimum number
+ * @param {number} max maximum number
+ * @returns random integer between min and max (both inclusive)
+ */
 const randBetween = (min, max) => {
   return min + Math.floor(Math.random() * (max - min + 1))
 }
@@ -22,6 +18,56 @@ const randomiseFavicon = () => {
 
 setInterval(randomiseFavicon, 20000);
 
+class Colour {
+  constructor(rgb) {
+    this.colour = rgb
+  }
+
+  static random() {
+    return new Colour([randBetween(0, 255), randBetween(0, 255), randBetween(0, 255)])
+  }
+
+  static randomDistinct(n = 4) {
+    const result = [];
+    while (result.length < n) {
+      const candidate = Colour.random();
+      if (result.every(colour => candidate.distinct(colour))) {
+        result.push(candidate);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * @param {Colour} other other colour to compare to
+   */
+  equal(other) {
+    for (let c = 0; c < 3; c++) {
+      if (this.colour[c] !== other.colour[c]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * @param {Colour} other other colour to compare to
+   */
+  distinct(other) {
+    return this.colour
+      .map((c, i) => Math.abs(c - other.colour[i]))
+      .reduce((a, b) => a + b) > 200;
+  }
+
+  get(index) {
+    return this.colour[index]
+  }
+
+  toString() {
+    return `rgb(${this.colour.join(',')})`
+  }
+}
+
 class Board {
   h = 0;
   w = 0;
@@ -30,7 +76,9 @@ class Board {
   constructor(h, w) {
     this.h = h;
     this.w = w;
+    this.corners = Colour.randomDistinct(4);
     this.boardColours = [];
+
     for (let y = 0; y < h; y++) {
       const row = []
       for (let x = 0; x < w; x++) {
@@ -41,26 +89,21 @@ class Board {
   }
 
   getColour(x, y) {
-    const topLeft = [50, 168, 82];
-    const topRight = [20, 40, 115];
-    const bottomLeft = [167, 0, 196];
-    const bottomRight = [250, 250, 250];
-
     const { h, w } = this;
-    const colour = [0, 0, 0];
+    const rgb = [0, 0, 0];
     for (let c = 0; c < 3; c++) {
-      colour[c] = (1 - y / (h - 1)) * (1 - x / (w - 1)) * topLeft[c]
-        + (1 - y / (h - 1)) * (x / (w - 1)) * topRight[c]
-        + (y / (h - 1)) * (1 - x / (w - 1)) * bottomLeft[c]
-        + (y / (h - 1)) * (x / (w - 1)) * bottomRight[c]
+      rgb[c] = (1 - y / (h - 1)) * (1 - x / (w - 1)) * this.corners[0].get(c)
+        + (1 - y / (h - 1)) * (x / (w - 1)) * this.corners[1].get(c)
+        + (y / (h - 1)) * (1 - x / (w - 1)) * this.corners[2].get(c)
+        + (y / (h - 1)) * (x / (w - 1)) * this.corners[3].get(c)
     }
-    return colour;
+    return new Colour(rgb);
   }
 
   isSolved() {
     for (let y = 0; y < this.h; y++) {
       for (let x = 0; x < this.w; x++) {
-        if (!isEqual(this.boardColours[y][x], this.getColour(x, y))) {
+        if (!this.boardColours[y][x].equal(this.getColour(x, y))) {
           return false;
         }
       }
@@ -124,7 +167,7 @@ class Board {
           tile.appendChild(dot)
         }
         tile.className = classes.join(' ');
-        tile.style = `background-color: rgb(${this.boardColours[y][x].join(',')});`
+        tile.style = `background-color: ${this.boardColours[y][x].toString()};`
 
         if (!this.isCorner(x, y)) {
           tile.onclick = () => {
