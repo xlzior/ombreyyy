@@ -4,6 +4,17 @@
   padding: 0;
 }
 
+html {
+  height: 100%;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
 .board {
   display: flex;
   flex-direction: column;
@@ -17,8 +28,21 @@
   height: 100px;
   width: 100px;
   cursor: pointer;
+  display: grid;
+  place-items: center;
 }
 
 .tile.selected {
   border: 2px solid black;
+}
+
+.tile.fixed {
+  cursor: initial;
+}
+
+.dot {
+  height: 10px;
+  width: 10px;
+  border-radius: 5px;
+  background-color: black;
 }
