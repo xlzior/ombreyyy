@@ -86,6 +86,9 @@ class Board {
       }
       this.boardColours.push(row)
     }
+
+    this.shuffle();
+    this.resize();
   }
 
   getColour(x, y) {
@@ -149,6 +152,11 @@ class Board {
     this.boardColours[y2][x2] = temp;
   }
 
+  resize() {
+    this.pixelWidth = Math.floor(Math.min(window.innerHeight / this.h, window.innerWidth / this.w))
+    this.draw();
+  }
+
   draw() {
     const board = document.createElement('div')
     board.className = 'board'
@@ -167,7 +175,11 @@ class Board {
           tile.appendChild(dot)
         }
         tile.className = classes.join(' ');
-        tile.style = `background-color: ${this.boardColours[y][x].toString()};`
+        tile.style = [
+          `height: ${this.pixelWidth}px;`,
+          `width: ${this.pixelWidth}px;`,
+          `background-color: ${this.boardColours[y][x].toString()};`
+        ].join(' ')
 
         if (!this.isCorner(x, y)) {
           tile.onclick = () => {
@@ -194,5 +206,7 @@ class Board {
 }
 
 const board = new Board(7, 5);
-board.shuffle();
-board.draw();
+
+window.onresize = () => {
+  board.resize();
+}
