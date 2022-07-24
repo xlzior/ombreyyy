@@ -9,8 +9,16 @@ app.use(express.static(__dirname + '/public'));
 app.set('views', './public')
 app.set('view engine', 'pug')
 
+const difficulties = {
+  'easy': [7, 5],
+  // 'medium': [9, 6],
+  // 'hard': [11, 7]
+}
+
 app.get('/', function (req, res) {
-  res.render('index')
+  const { mode } = req.query;
+  const [height, width] = difficulties[mode] || difficulties.easy
+  res.render('index', { height, width })
 });
 
 var server = app.listen(process.env.PORT, "0.0.0.0", () => {

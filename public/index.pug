@@ -9,4 +9,16 @@ html
     link(rel="stylesheet"  type="text/css" href="styles.css")
   body
     #root
+      .board 
+        each y in Array.from(Array(height).keys())
+          .row
+            each x in Array.from(Array(width).keys())
+              .tile(
+                id=`tile-${x}-${y}`
+                class=`${(x === 0 || x === width - 1) && (y === 0 || y === height - 1) ? 'fixed' : ''}`
+              )
+      #end-screen(style={'visibility': 'hidden'})
+        p ✅ Solved!
+        button(onclick="nextPuzzle()") Next ⏩
+
     script(src="script.js")

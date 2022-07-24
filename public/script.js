@@ -81,16 +81,16 @@ class Board {
 
   initialise() {
     this.corners = Colour.randomDistinct(4);
-    this.boardColours = [];
+    this.board = [];
 
     for (let y = 0; y < this.h; y++) {
       const row = []
       for (let x = 0; x < this.w; x++) {
         row.push(this.getColour(x, y));
       }
-      this.boardColours.push(row)
+      this.board.push(row)
     }
-    this.shuffle();
+    this.shuffle(1);
     this.resize()
   }
 
@@ -109,7 +109,7 @@ class Board {
   isSolved() {
     for (let y = 0; y < this.h; y++) {
       for (let x = 0; x < this.w; x++) {
-        if (!this.boardColours[y][x].equal(this.getColour(x, y))) {
+        if (!this.board[y][x].equal(this.getColour(x, y))) {
           return false;
         }
       }
@@ -118,7 +118,8 @@ class Board {
   }
 
   isCorner = (x, y) => {
-    return (x === 0 || x === this.w - 1) && (y === 0 || y === this.h - 1)
+    return (x === 0 || x === this.w - 1)
+      && (y === 0 || y === this.h - 1);
   }
 
   randomCoordinate() {
@@ -135,24 +136,30 @@ class Board {
     }
   }
 
+  getTile(x, y) {
+    return document.getElementById(`tile-${x}-${y}`);
+  }
+
+  getEndScreen() {
+    return document.getElementById('end-screen')
+  }
+
   setSelection(x, y) {
     this.selectedTile[0] = x;
     this.selectedTile[1] = y;
-    this.draw();
+    this.getTile(x, y)?.classList.add('selected')
   }
 
   resetSelection() {
+    const [x, y] = this.selectedTile;
+    this.getTile(x, y)?.classList.remove('selected');
     this.setSelection(-1, -1);
   }
 
-  isSelected(x, y) {
-    return this.selectedTile[0] === x && this.selectedTile[1] === y;
-  }
-
   swapTiles(x1, y1, x2, y2) {
-    const temp = this.boardColours[y1][x1];
-    this.boardColours[y1][x1] = this.boardColours[y2][x2];
-    this.boardColours[y2][x2] = temp;
+    const temp = this.board[y1][x1];
+    this.board[y1][x1] = this.board[y2][x2];
+    this.board[y2][x2] = temp;
   }
 
   resize() {
@@ -163,66 +170,37 @@ class Board {
   }
 
   draw() {
-    const board = document.createElement('div')
-    board.className = 'board'
-
     for (let y = 0; y < this.h; y++) {
-      const row = document.createElement('div')
-      row.className = 'row'
       for (let x = 0; x < this.w; x++) {
-        const tile = document.createElement('div')
-        const classes = ['tile'];
-        if (this.isSelected(x, y)) classes.push('selected');
-        if (this.isCorner(x, y)) {
-          classes.push('fixed');
-          const dot = document.createElement('div');
-          dot.className = 'dot'
-          tile.appendChild(dot)
-        }
-        tile.className = classes.join(' ');
-        tile.style = [
-          `height: ${this.pixelWidth}px;`,
-          `width: ${this.pixelWidth}px;`,
-          `background-color: ${this.boardColours[y][x].toString()};`
-        ].join(' ')
+        const tile = this.getTile(x, y);
+        tile?.style.setProperty('height', `${this.pixelWidth}px`)
+        tile?.style.setProperty('width', `${this.pixelWidth}px`)
+        tile?.style.setProperty('background-color', `${this.board[y][x].toString()}`)
 
         if (!this.isCorner(x, y)) {
           tile.onmousedown = () => {
             if (this.selectedTile[0] != -1) {
               const [x2, y2] = this.selectedTile;
               this.swapTiles(x, y, x2, y2);
+              this.draw();
               this.resetSelection();
             } else {
               this.setSelection(x, y);
             }
-            this.draw();
           }
         }
-        row.appendChild(tile);
       }
-      board.appendChild(row);
     }
-    const root = document.getElementById("root")
-    root.replaceChildren(board)
 
-    const endScreen = document.createElement('div')
-    endScreen.className = 'end-screen'
-    if (this.isSolved()) {
-      const solved = document.createElement('p')
-      solved.textContent = '✅ Solved!'
-      const nextPuzzle = document.createElement('button')
-      nextPuzzle.addEventListener('click', () => {
-        this.initialise()
-      })
-      nextPuzzle.textContent = 'Next ⏩'
-      endScreen.appendChild(solved)
-      endScreen.appendChild(nextPuzzle)
-    }
-    root.appendChild(endScreen)
+    this.getEndScreen()?.style.setProperty(
+      'visibility',
+      this.isSolved() ? 'visible' : 'hidden')
   }
 }
 
 const board = new Board(7, 5);
+
+const nextPuzzle = () => board.initialise();
 
 window.onresize = () => {
   board.resize();
