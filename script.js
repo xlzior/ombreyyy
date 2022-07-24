@@ -187,7 +187,7 @@ class Board {
         ].join(' ')
 
         if (!this.isCorner(x, y)) {
-          tile.onclick = () => {
+          tile.onmousedown = () => {
             if (this.selectedTile[0] != -1) {
               const [x2, y2] = this.selectedTile;
               this.swapTiles(x, y, x2, y2);
