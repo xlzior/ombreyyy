@@ -16,6 +16,12 @@ body {
   place-items: center;
 }
 
+#difficulty-switcher {
+  display: flex;
+  justify-content: space-around;
+  padding: 15px 0;
+}
+
 .board {
   display: flex;
   flex-direction: column;
@@ -39,14 +45,11 @@ body {
   cursor: initial;
 }
 
-.dot {
-  height: 10px;
-  width: 10px;
-  border-radius: 5px;
-  background-color: black;
+.tile.fixed::before {
+  content: "•";
 }
 
-.end-screen {
+#end-screen {
   padding: 15px;
   height: 80px;
   display: flex;

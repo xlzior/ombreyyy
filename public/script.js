@@ -9,10 +9,15 @@ const randBetween = (min, max) => {
   return min + Math.floor(Math.random() * (max - min + 1))
 }
 
+const isBetween = (x, left, right) => {
+  return left <= x && x <= right;
+}
+
 const favicons = ['🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛️', '⬜️', '🟫']
 const randomiseFavicon = () => {
-  let link = document.querySelector("link[rel~='icon']");
+  const link = document.querySelector("link[rel~='icon']");
   const selectedColour = favicons[randBetween(0, favicons.length - 1)]
+  if (!link) return;
   link.href = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>${selectedColour}</text></svg>`;
 }
 
@@ -21,6 +26,10 @@ setInterval(randomiseFavicon, 20000);
 class Colour {
   constructor(rgb) {
     this.colour = rgb
+  }
+
+  static empty() {
+    return new Colour([0, 0, 0])
   }
 
   static random() {
@@ -73,25 +82,26 @@ class Board {
   w = 0;
   selectedTile = [-1, -1];
 
-  constructor(h, w) {
+  constructor(h, w, mode = 'easy') {
     this.h = h;
     this.w = w;
+    this.mode = mode;
+    this.xs = Array.from(Array(w).keys())
+    this.ys = Array.from(Array(h).keys())
+    this.coords = this.xs.flatMap(x => this.ys.map(y => [x, y]))
+    this.board = this.ys.map(y => this.xs.map(x => Colour.empty()))
+    this.corners = Array.from({ length: 4 }, () => Colour.empty())
+    this.resize();
     this.initialise();
   }
 
   initialise() {
     this.corners = Colour.randomDistinct(4);
-    this.boardColours = [];
-
-    for (let y = 0; y < this.h; y++) {
-      const row = []
-      for (let x = 0; x < this.w; x++) {
-        row.push(this.getColour(x, y));
-      }
-      this.boardColours.push(row)
-    }
+    this.coords.forEach(([x, y]) => {
+      this.board[y][x] = this.getColour(x, y)
+    })
     this.shuffle();
-    this.resize()
+    this.draw();
   }
 
   getColour(x, y) {
@@ -107,122 +117,136 @@ class Board {
   }
 
   isSolved() {
-    for (let y = 0; y < this.h; y++) {
-      for (let x = 0; x < this.w; x++) {
-        if (!this.boardColours[y][x].equal(this.getColour(x, y))) {
-          return false;
-        }
-      }
-    }
-    return true;
+    return this.coords.every(([x, y]) => {
+      return this.board[y][x].equal(this.getColour(x, y));
+    });
   }
 
-  isCorner = (x, y) => {
-    return (x === 0 || x === this.w - 1) && (y === 0 || y === this.h - 1)
+  isCorner(x, y) {
+    return (x === 0 || x === this.w - 1)
+      && (y === 0 || y === this.h - 1);
+  }
+
+  isFixed(x, y) {
+    if (this.mode === 'easy') {
+      return this.isCorner(x, y) ||
+        (isBetween(x, 1, this.w - 2) && isBetween(y, 1, this.h - 2))
+    }
+    return this.isCorner(x, y)
   }
 
   randomCoordinate() {
     const x = randBetween(0, this.w - 1);
     const y = randBetween(0, this.h - 1);
-    return this.isCorner(x, y) ? this.randomCoordinate() : [x, y];
+    return this.isFixed(x, y) ? this.randomCoordinate() : [x, y];
   }
 
   shuffle(n = 2 * this.h * this.w) {
-    for (let i = 0; i < n; i++) {
+    Array.from({ length: n }, () => {
       const [x1, y1] = this.randomCoordinate();
       const [x2, y2] = this.randomCoordinate();
-      this.swapTiles(x1, y1, x2, y2);
-    }
+      this.swapTiles(x1, y1, x2, y2, false);
+    })
+  }
+
+  getTile(x, y) {
+    return document.getElementById(`tile-${x}-${y}`);
+  }
+
+  getEndScreen() {
+    return document.getElementById('end-screen')
   }
 
   setSelection(x, y) {
     this.selectedTile[0] = x;
     this.selectedTile[1] = y;
-    this.draw();
+    this.getTile(x, y)?.classList.add('selected')
   }
 
   resetSelection() {
+    const [x, y] = this.selectedTile;
+    this.getTile(x, y)?.classList.remove('selected');
     this.setSelection(-1, -1);
   }
 
-  isSelected(x, y) {
-    return this.selectedTile[0] === x && this.selectedTile[1] === y;
+  hasSelection() {
+    return this.selectedTile[0] != -1 && this.selectedTile[1] != -1;
   }
 
-  swapTiles(x1, y1, x2, y2) {
-    const temp = this.boardColours[y1][x1];
-    this.boardColours[y1][x1] = this.boardColours[y2][x2];
-    this.boardColours[y2][x2] = temp;
+  swapTiles(x1, y1, x2, y2, render = true) {
+    const temp = this.board[y1][x1];
+    this.board[y1][x1] = this.board[y2][x2];
+    this.board[y2][x2] = temp;
+
+    if (render) {
+      this.getTile(x1, y1)?.style.setProperty(
+        'background-color', this.board[y1][x1].toString())
+      this.getTile(x2, y2)?.style.setProperty(
+        'background-color', this.board[y2][x2].toString())
+
+      this.checkWin();
+    }
   }
 
   resize() {
     this.pixelWidth = Math.floor(Math.min(
-      (window.innerHeight - 100) / this.h,
+      (window.innerHeight - 150) / this.h,
       window.innerWidth / this.w))
-    this.draw();
+    this.coords.forEach(([x, y]) => {
+      const tile = this.getTile(x, y);
+      tile?.style.setProperty('height', `${this.pixelWidth}px`)
+      tile?.style.setProperty('width', `${this.pixelWidth}px`)
+    })
   }
 
   draw() {
-    const board = document.createElement('div')
-    board.className = 'board'
+    this.coords.forEach(([x, y]) => {
+      const tile = this.getTile(x, y);
+      if (!tile) return;
 
-    for (let y = 0; y < this.h; y++) {
-      const row = document.createElement('div')
-      row.className = 'row'
-      for (let x = 0; x < this.w; x++) {
-        const tile = document.createElement('div')
-        const classes = ['tile'];
-        if (this.isSelected(x, y)) classes.push('selected');
-        if (this.isCorner(x, y)) {
-          classes.push('fixed');
-          const dot = document.createElement('div');
-          dot.className = 'dot'
-          tile.appendChild(dot)
-        }
-        tile.className = classes.join(' ');
-        tile.style = [
-          `height: ${this.pixelWidth}px;`,
-          `width: ${this.pixelWidth}px;`,
-          `background-color: ${this.boardColours[y][x].toString()};`
-        ].join(' ')
-
-        if (!this.isCorner(x, y)) {
-          tile.onmousedown = () => {
-            if (this.selectedTile[0] != -1) {
-              const [x2, y2] = this.selectedTile;
-              this.swapTiles(x, y, x2, y2);
-              this.resetSelection();
-            } else {
-              this.setSelection(x, y);
-            }
-            this.draw();
+      tile.style.backgroundColor = this.board[y][x].toString();
+      if (this.isFixed(x, y)) {
+        tile.classList.add('fixed');
+      } else {
+        tile.onclick = () => {
+          if (this.hasSelection()) {
+            const [x2, y2] = this.selectedTile;
+            this.swapTiles(x, y, x2, y2);
+            this.resetSelection();
+          } else {
+            this.setSelection(x, y);
           }
         }
-        row.appendChild(tile);
       }
-      board.appendChild(row);
-    }
-    const root = document.getElementById("root")
-    root.replaceChildren(board)
+    })
 
-    const endScreen = document.createElement('div')
-    endScreen.className = 'end-screen'
-    if (this.isSolved()) {
-      const solved = document.createElement('p')
-      solved.textContent = '✅ Solved!'
-      const nextPuzzle = document.createElement('button')
-      nextPuzzle.addEventListener('click', () => {
-        this.initialise()
-      })
-      nextPuzzle.textContent = 'Next ⏩'
-      endScreen.appendChild(solved)
-      endScreen.appendChild(nextPuzzle)
-    }
-    root.appendChild(endScreen)
+    this.checkWin();
+  }
+
+  checkWin() {
+    this.getEndScreen()?.style.setProperty(
+      'visibility',
+      this.isSolved() ? 'visible' : 'hidden')
   }
 }
 
-const board = new Board(7, 5);
+const queryParams = new URLSearchParams(window.location.search);
+let mode = queryParams.get('mode') || 'easy';
+if (!['easy', 'normal', 'hard'].includes(mode)) {
+  mode = 'easy';
+}
+
+const difficulties = {
+  'easy': [7, 5],
+  'normal': [7, 5],
+  'hard': [9, 6],
+}
+
+const [h, w] = difficulties[mode];
+
+const board = new Board(h, w, mode);
+
+const nextPuzzle = () => board.initialise();
 
 window.onresize = () => {
   board.resize();
