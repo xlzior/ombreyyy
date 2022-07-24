@@ -6,9 +6,11 @@ const bot = require('./bot')
 const app = express();
 app.use(bodyParser.json());
 app.use(express.static(__dirname + '/public'));
+app.set('views', './public')
+app.set('view engine', 'pug')
 
 app.get('/', function (req, res) {
-  res.sendFile('index.html')
+  res.render('index')
 });
 
 var server = app.listen(process.env.PORT, "0.0.0.0", () => {
