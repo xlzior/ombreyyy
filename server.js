@@ -11,8 +11,8 @@ app.set('view engine', 'pug')
 
 const difficulties = {
   'easy': [7, 5],
-  // 'medium': [9, 6],
-  // 'hard': [11, 7]
+  'normal': [7, 5],
+  'hard': [9, 6],
 }
 
 app.get('/', function (req, res) {

@@ -16,6 +16,12 @@ body {
   place-items: center;
 }
 
+#difficulty-switcher {
+  display: flex;
+  justify-content: space-around;
+  padding: 15px 0;
+}
+
 .board {
   display: flex;
   flex-direction: column;

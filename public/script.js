@@ -9,6 +9,10 @@ const randBetween = (min, max) => {
   return min + Math.floor(Math.random() * (max - min + 1))
 }
 
+const isBetween = (x, left, right) => {
+  return left <= x && x <= right;
+}
+
 const favicons = ['🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛️', '⬜️', '🟫']
 const randomiseFavicon = () => {
   const link = document.querySelector("link[rel~='icon']");
@@ -78,14 +82,16 @@ class Board {
   w = 0;
   selectedTile = [-1, -1];
 
-  constructor(h, w) {
+  constructor(h, w, mode = 'easy') {
     this.h = h;
     this.w = w;
+    this.mode = mode;
     this.xs = Array.from(Array(w).keys())
     this.ys = Array.from(Array(h).keys())
     this.coords = this.xs.flatMap(x => this.ys.map(y => [x, y]))
     this.board = this.ys.map(y => this.xs.map(x => Colour.empty()))
     this.corners = Array.from({ length: 4 }, () => Colour.empty())
+    this.resize();
     this.initialise();
   }
 
@@ -94,8 +100,7 @@ class Board {
     this.coords.forEach(([x, y]) => {
       this.board[y][x] = this.getColour(x, y)
     })
-    this.shuffle(1);
-    this.resize();
+    this.shuffle();
     this.draw();
   }
 
@@ -117,15 +122,23 @@ class Board {
     });
   }
 
-  isCorner = (x, y) => {
+  isCorner(x, y) {
     return (x === 0 || x === this.w - 1)
       && (y === 0 || y === this.h - 1);
+  }
+
+  isFixed(x, y) {
+    if (this.mode === 'easy') {
+      return this.isCorner(x, y) ||
+        (isBetween(x, 1, this.w - 2) && isBetween(y, 1, this.h - 2))
+    }
+    return this.isCorner(x, y)
   }
 
   randomCoordinate() {
     const x = randBetween(0, this.w - 1);
     const y = randBetween(0, this.h - 1);
-    return this.isCorner(x, y) ? this.randomCoordinate() : [x, y];
+    return this.isFixed(x, y) ? this.randomCoordinate() : [x, y];
   }
 
   shuffle(n = 2 * this.h * this.w) {
@@ -177,7 +190,7 @@ class Board {
 
   resize() {
     this.pixelWidth = Math.floor(Math.min(
-      (window.innerHeight - 100) / this.h,
+      (window.innerHeight - 150) / this.h,
       window.innerWidth / this.w))
     this.coords.forEach(([x, y]) => {
       const tile = this.getTile(x, y);
@@ -192,7 +205,9 @@ class Board {
       if (!tile) return;
 
       tile.style.backgroundColor = this.board[y][x].toString();
-      if (!this.isCorner(x, y)) {
+      if (this.isFixed(x, y)) {
+        tile.classList.add('fixed');
+      } else {
         tile.onclick = () => {
           if (this.hasSelection()) {
             const [x2, y2] = this.selectedTile;
@@ -215,7 +230,21 @@ class Board {
   }
 }
 
-const board = new Board(7, 5);
+const queryParams = new URLSearchParams(window.location.search);
+let mode = queryParams.get('mode') || 'easy';
+if (!['easy', 'normal', 'hard'].includes(mode)) {
+  mode = 'easy';
+}
+
+const difficulties = {
+  'easy': [7, 5],
+  'normal': [7, 5],
+  'hard': [9, 6],
+}
+
+const [h, w] = difficulties[mode];
+
+const board = new Board(h, w, mode);
 
 const nextPuzzle = () => board.initialise();
 
