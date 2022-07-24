@@ -204,6 +204,7 @@ class Board {
     }
     const root = document.getElementById("root")
     root.replaceChildren(board)
+
     const endScreen = document.createElement('div')
     endScreen.className = 'end-screen'
     if (this.isSolved()) {
