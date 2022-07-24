@@ -90,7 +90,7 @@ class Board {
       }
       this.boardColours.push(row)
     }
-    this.shuffle(1);
+    this.shuffle();
     this.resize()
   }
 

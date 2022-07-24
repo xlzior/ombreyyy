@@ -24,7 +24,7 @@ bot.on('inline_query', query => {
 
 bot.on('callback_query', query => {
   bot.answerCallbackQuery(query.id, {
-    url: "https://xlzior.github.io/ombreyyy/"
+    url: "https://ombreyyy.herokuapp.com/"
   })
 })
 

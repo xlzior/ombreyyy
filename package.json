@@ -5,7 +5,8 @@
   "repository": "https://github.com/xlzior/ombreyyy.git",
   "license": "MIT",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "deploy": "git push heroku main"
   },
   "dependencies": {
     "body-parser": "^1.20.0",
