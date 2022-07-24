@@ -11,8 +11,9 @@ const randBetween = (min, max) => {
 
 const favicons = ['🟥', '🟧', '🟨', '🟩', '🟦', '🟪', '⬛️', '⬜️', '🟫']
 const randomiseFavicon = () => {
-  let link = document.querySelector("link[rel~='icon']");
+  const link = document.querySelector("link[rel~='icon']");
   const selectedColour = favicons[randBetween(0, favicons.length - 1)]
+  if (!link) return;
   link.href = `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>${selectedColour}</text></svg>`;
 }
 
@@ -21,6 +22,10 @@ setInterval(randomiseFavicon, 20000);
 class Colour {
   constructor(rgb) {
     this.colour = rgb
+  }
+
+  static empty() {
+    return new Colour([0, 0, 0])
   }
 
   static random() {
@@ -76,22 +81,22 @@ class Board {
   constructor(h, w) {
     this.h = h;
     this.w = w;
+    this.xs = Array.from(Array(w).keys())
+    this.ys = Array.from(Array(h).keys())
+    this.coords = this.xs.flatMap(x => this.ys.map(y => [x, y]))
+    this.board = this.ys.map(y => this.xs.map(x => Colour.empty()))
+    this.corners = Array.from({ length: 4 }, () => Colour.empty())
     this.initialise();
   }
 
   initialise() {
     this.corners = Colour.randomDistinct(4);
-    this.board = [];
-
-    for (let y = 0; y < this.h; y++) {
-      const row = []
-      for (let x = 0; x < this.w; x++) {
-        row.push(this.getColour(x, y));
-      }
-      this.board.push(row)
-    }
+    this.coords.forEach(([x, y]) => {
+      this.board[y][x] = this.getColour(x, y)
+    })
     this.shuffle(1);
-    this.resize()
+    this.resize();
+    this.draw();
   }
 
   getColour(x, y) {
@@ -107,14 +112,9 @@ class Board {
   }
 
   isSolved() {
-    for (let y = 0; y < this.h; y++) {
-      for (let x = 0; x < this.w; x++) {
-        if (!this.board[y][x].equal(this.getColour(x, y))) {
-          return false;
-        }
-      }
-    }
-    return true;
+    return this.coords.every(([x, y]) => {
+      return this.board[y][x].equal(this.getColour(x, y));
+    });
   }
 
   isCorner = (x, y) => {
@@ -129,11 +129,11 @@ class Board {
   }
 
   shuffle(n = 2 * this.h * this.w) {
-    for (let i = 0; i < n; i++) {
+    Array.from({ length: n }, () => {
       const [x1, y1] = this.randomCoordinate();
       const [x2, y2] = this.randomCoordinate();
-      this.swapTiles(x1, y1, x2, y2);
-    }
+      this.swapTiles(x1, y1, x2, y2, false);
+    })
   }
 
   getTile(x, y) {
@@ -156,42 +156,59 @@ class Board {
     this.setSelection(-1, -1);
   }
 
-  swapTiles(x1, y1, x2, y2) {
+  hasSelection() {
+    return this.selectedTile[0] != -1 && this.selectedTile[1] != -1;
+  }
+
+  swapTiles(x1, y1, x2, y2, render = true) {
     const temp = this.board[y1][x1];
     this.board[y1][x1] = this.board[y2][x2];
     this.board[y2][x2] = temp;
+
+    if (render) {
+      this.getTile(x1, y1)?.style.setProperty(
+        'background-color', this.board[y1][x1].toString())
+      this.getTile(x2, y2)?.style.setProperty(
+        'background-color', this.board[y2][x2].toString())
+
+      this.checkWin();
+    }
   }
 
   resize() {
     this.pixelWidth = Math.floor(Math.min(
       (window.innerHeight - 100) / this.h,
       window.innerWidth / this.w))
-    this.draw();
+    this.coords.forEach(([x, y]) => {
+      const tile = this.getTile(x, y);
+      tile?.style.setProperty('height', `${this.pixelWidth}px`)
+      tile?.style.setProperty('width', `${this.pixelWidth}px`)
+    })
   }
 
   draw() {
-    for (let y = 0; y < this.h; y++) {
-      for (let x = 0; x < this.w; x++) {
-        const tile = this.getTile(x, y);
-        tile?.style.setProperty('height', `${this.pixelWidth}px`)
-        tile?.style.setProperty('width', `${this.pixelWidth}px`)
-        tile?.style.setProperty('background-color', `${this.board[y][x].toString()}`)
+    this.coords.forEach(([x, y]) => {
+      const tile = this.getTile(x, y);
+      if (!tile) return;
 
-        if (!this.isCorner(x, y)) {
-          tile.onmousedown = () => {
-            if (this.selectedTile[0] != -1) {
-              const [x2, y2] = this.selectedTile;
-              this.swapTiles(x, y, x2, y2);
-              this.draw();
-              this.resetSelection();
-            } else {
-              this.setSelection(x, y);
-            }
+      tile.style.backgroundColor = this.board[y][x].toString();
+      if (!this.isCorner(x, y)) {
+        tile.onclick = () => {
+          if (this.hasSelection()) {
+            const [x2, y2] = this.selectedTile;
+            this.swapTiles(x, y, x2, y2);
+            this.resetSelection();
+          } else {
+            this.setSelection(x, y);
           }
         }
       }
-    }
+    })
 
+    this.checkWin();
+  }
+
+  checkWin() {
     this.getEndScreen()?.style.setProperty(
       'visibility',
       this.isSolved() ? 'visible' : 'hidden')
