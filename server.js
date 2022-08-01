@@ -1,7 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
-const bot = require('./bot')
+const bot = require('./bot');
+const utils = require('./utils');
 
 const app = express();
 app.use(bodyParser.json());
@@ -20,6 +21,10 @@ app.get('/', function (req, res) {
   const [height, width] = difficulties[mode] || difficulties.easy
   res.render('index', { height, width })
 });
+
+app.get('/get-corners', function (req, res) {
+  res.json(utils.randomDistinctColours(4))
+})
 
 var server = app.listen(process.env.PORT, "0.0.0.0", () => {
   const host = server.address().address;

@@ -32,21 +32,6 @@ class Colour {
     return new Colour([0, 0, 0])
   }
 
-  static random() {
-    return new Colour([randBetween(0, 255), randBetween(0, 255), randBetween(0, 255)])
-  }
-
-  static randomDistinct(n = 4) {
-    const result = [];
-    while (result.length < n) {
-      const candidate = Colour.random();
-      if (result.every(colour => candidate.distinct(colour))) {
-        result.push(candidate);
-      }
-    }
-    return result;
-  }
-
   /**
    * @param {Colour} other other colour to compare to
    */
@@ -57,15 +42,6 @@ class Colour {
       }
     }
     return true;
-  }
-
-  /**
-   * @param {Colour} other other colour to compare to
-   */
-  distinct(other) {
-    return this.colour
-      .map((c, i) => Math.abs(c - other.colour[i]))
-      .reduce((a, b) => a + b) > 200;
   }
 
   get(index) {
@@ -95,12 +71,14 @@ class Board {
     this.initialise();
   }
 
-  initialise() {
-    this.corners = Colour.randomDistinct(4);
+  async initialise() {
+    this.corners = await fetch('/get-corners')
+      .then(response => response.json())
+      .then(rgbs => rgbs.map(rgb => new Colour(rgb)))
     this.coords.forEach(([x, y]) => {
       this.board[y][x] = this.getColour(x, y)
     })
-    this.shuffle();
+    this.shuffle(0);
     this.draw();
   }
 
@@ -141,7 +119,7 @@ class Board {
     return this.isFixed(x, y) ? this.randomCoordinate() : [x, y];
   }
 
-  shuffle(n = 2 * this.h * this.w) {
+  shuffle(n = this.h * this.w) {
     Array.from({ length: n }, () => {
       const [x1, y1] = this.randomCoordinate();
       const [x2, y2] = this.randomCoordinate();
