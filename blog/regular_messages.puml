@@ -1,0 +1,29 @@
+@startuml Sending games to chats as regular messages
+
+actor User
+
+group Initiating a conversation
+autonumber
+
+User -> Telegram : Send "/start"
+activate Telegram
+Telegram -> Bot :  ""Message""
+activate Bot
+return ""sendGame""
+return display game
+
+end
+
+group Launching the game
+autonumber
+
+User -> Telegram : click on "Play //Game Name//"
+activate Telegram
+Telegram -> Bot : ""CallbackQuery"" with\n""game_short_name""
+activate Bot
+return ""answerCallbackQuery""\nwith url
+return open game
+
+end
+
+@enduml

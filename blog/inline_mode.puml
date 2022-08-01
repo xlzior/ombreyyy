@@ -1,0 +1,33 @@
+@startuml Offering games via inline mode
+
+actor User
+
+group Browsing games
+autonumber
+
+User -> Telegram : Type "//@your_bot_username//"
+activate Telegram
+Telegram -> Bot :  ""InlineQuery""
+activate Bot
+return ""answerInlineQuery"" with\n""InlineQueryResultGame[]""
+return display results
+
+User -> Telegram : select a game from the list
+activate Telegram
+return display game
+
+end
+
+group Launching the game
+autonumber
+
+User -> Telegram : click on "Play //Game Name//"
+activate Telegram
+Telegram -> Bot : ""CallbackQuery"" with\n""game_short_name""
+activate Bot
+return ""answerCallbackQuery""\nwith url
+return open game
+
+end
+
+@enduml
